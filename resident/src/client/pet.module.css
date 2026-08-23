@@ -1,0 +1,402 @@
+/* ── GrokBot 桌宠 · 常驻插件样式 ─────────────────────────────── */
+
+/* 布局骨架 */
+.root {
+  position: fixed;
+  z-index: 1000;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.box {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 84px;
+  height: 84px;
+  pointer-events: auto;
+  user-select: none;
+  -webkit-user-select: none;
+  perspective: 600px;
+}
+
+.body {
+  position: absolute;
+  left: 10px;
+  top: 14px;
+  width: 64px;
+  height: 64px;
+  cursor: grab;
+  touch-action: none;
+  filter: drop-shadow(0 5px 4px rgba(35, 48, 80, 0.2));
+  will-change: left, top, filter;
+}
+
+.body:active {
+  cursor: grabbing;
+}
+
+.figure {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.eye {
+  fill: #fffdf7;
+}
+
+.bodypath {
+  transition: fill 0.22s;
+}
+
+.part {
+  fill: none;
+  stroke-width: 12;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ── 状态动画 ────────────────────────────────────── */
+
+.bodyActBounce  { animation: pBounce  0.85s ease; }
+.bodyActTilt    { animation: pTilt    0.8s  ease; }
+.bodyActScan .eyes { animation: pScan 0.8s  ease; }
+.bodyActTurn    { animation: pTurn    0.9s  ease; }
+.bodyActPulse   { animation: pPulse   0.9s  ease; }
+.bodyActGlitch  { animation: pGlitch  0.55s steps(2); }
+
+/* ── 残影 ────────────────────────────────────────── */
+
+.ghost {
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(2px);
+  display: none;
+}
+
+/* ── 气泡 ────────────────────────────────────────── */
+
+.bubble {
+  position: absolute;
+  right: -8px;
+  bottom: 100px;
+  min-width: 150px;
+  max-width: 224px;
+  padding: 8px 10px;
+  border: 1px solid var(--dsw-alias-border-inverted, rgba(0,0,0,.08));
+  border-radius: 12px;
+  background: var(--dsw-specific-menu, #fff);
+  box-shadow: var(--dsw-shadow-lv3, 0 8px 24px rgba(0,0,0,.18));
+  color: var(--dsw-alias-label-primary, #20242e);
+  font-size: 12px;
+  line-height: 17px;
+  pointer-events: none;
+}
+
+.bubble::after {
+  content: "";
+  position: absolute;
+  right: 28px;
+  bottom: -6px;
+  width: 10px;
+  height: 10px;
+  background: inherit;
+  border-right: 1px solid var(--dsw-alias-border-inverted, rgba(0,0,0,.08));
+  border-bottom: 1px solid var(--dsw-alias-border-inverted, rgba(0,0,0,.08));
+  transform: rotate(45deg);
+}
+
+.bubbleTitle  { font-weight: 600; }
+.bubbleLine   { margin-top: 2px; color: var(--dsw-alias-label-secondary, #3a4150); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bubbleSub    { margin-top: 1px; color: var(--dsw-alias-label-caption, #7a8292); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ── 进度条 ──────────────────────────────────────── */
+
+.bar      { height: 4px; margin-top: 6px; border-radius: 2px; background: var(--dsw-alias-interactive-bg-hover, rgba(0,0,0,.06)); overflow: hidden; }
+.barFill  { height: 100%; width: 45%; border-radius: 2px; background: linear-gradient(90deg, #6f93ff, #a5b8ff, #6f93ff); background-size: 200% 100%; animation: pShimmer 1.2s linear infinite; }
+
+/* ── 控制按钮 ────────────────────────────────────── */
+
+.ctls {
+  position: absolute;
+  left: 6px;
+  top: 86px;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 160ms ease;
+  pointer-events: none;
+}
+
+.box:hover .ctls,
+.ctls:focus-within {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.ctl {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--dsw-alias-border-inverted, rgba(0,0,0,.08));
+  border-radius: 12px;
+  background: var(--dsw-specific-menu, #fff);
+  color: var(--dsw-alias-label-secondary, #3a4150);
+  font-size: 12px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,.12);
+}
+
+.ctl:hover  { background: var(--dsw-alias-interactive-bg-hover, rgba(0,0,0,.05)); }
+.ctlOn      { background: var(--dsw-alias-state-info-primary, #4a7dff); color: #fff; }
+.ctlOn:hover { background: var(--dsw-alias-state-info-primary, #4a7dff); }
+
+/* ── 通知弹窗 ────────────────────────────────────── */
+
+.notice {
+  position: absolute;
+  left: 6px;
+  top: 116px;
+  max-width: 200px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: var(--dsw-specific-menu, #fff);
+  border: 1px solid var(--dsw-alias-border-inverted, rgba(0,0,0,.08));
+  color: var(--dsw-alias-label-secondary, #3a4150);
+  font-size: 11px;
+  line-height: 15px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.12);
+}
+
+/* ── 隐藏后恢复按钮 ──────────────────────────────── */
+
+.reshow {
+  position: fixed;
+  right: 14px;
+  bottom: 14px;
+  z-index: 1000;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--dsw-alias-border-inverted, rgba(0,0,0,.08));
+  border-radius: 50%;
+  background: var(--dsw-specific-menu, #fff);
+  font-size: 17px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0,0,0,.18);
+  pointer-events: auto;
+}
+
+/* ── 右键换装面板 ────────────────────────────────── */
+
+.panelWrap {
+  position: fixed;
+  z-index: 1001;
+  width: 244px;
+}
+
+.panel {
+  padding: 10px;
+  border: 1px solid var(--dsw-alias-border-inverted, rgba(0,0,0,.08));
+  border-radius: 14px;
+  background: var(--dsw-specific-menu, #fff);
+  box-shadow: var(--dsw-shadow-lv3, 0 10px 30px rgba(0,0,0,.2));
+  color: var(--dsw-alias-label-primary, #20242e);
+  font-size: 12px;
+  pointer-events: auto;
+}
+
+.panelTitle  { font-weight: 600; }
+.panelLabel  { display: flex; align-items: baseline; justify-content: space-between; margin: 9px 2px 6px; }
+.panelLabel strong  { font-size: 12px; }
+.panelLabel span    { color: var(--dsw-alias-label-tertiary, #74766e); font-size: 10px; }
+.panelRow    { display: flex; flex-wrap: wrap; gap: 5px; }
+
+/* 颜色点 */
+.dot {
+  position: relative;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--swatch);
+  cursor: pointer;
+}
+
+.dotOn::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border: 2px solid var(--dsw-alias-label-tertiary, #74766e);
+  border-radius: 50%;
+}
+
+/* 形状按钮 */
+.shapeBtn {
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  padding: 4px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.shapeBtn svg { display: block; width: 100%; height: 100%; }
+.shapeBtnOn   { border-color: var(--dsw-alias-label-tertiary, #74766e); background: var(--dsw-alias-interactive-bg-hover, rgba(0,0,0,.05)); }
+
+/* 部件/配饰多选 */
+.toggleBtn {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+}
+
+.toggleBtn button {
+  min-width: 0;
+  min-height: 44px;
+  padding: 5px 2px;
+  border: 1px solid var(--dsw-alias-border-inverted, rgba(0,0,0,.1));
+  border-radius: 11px;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary, #74766e);
+  cursor: pointer;
+}
+
+.toggleBtn button[aria-pressed=true] {
+  border-color: var(--dsw-alias-state-info-primary, #2f86ed);
+  background: var(--dsw-alias-interactive-bg-hover, rgba(0,0,0,.05));
+  color: var(--dsw-alias-label-primary, #20242e);
+  box-shadow: inset 0 0 0 1px var(--dsw-alias-state-info-primary, #2f86ed);
+}
+
+.toggleBtn b {
+  display: block;
+  height: 17px;
+  color: var(--dsw-alias-state-info-primary, #2f86ed);
+  font-size: 15px;
+  font-weight: 400;
+}
+
+.toggleBtn span {
+  display: block;
+  margin-top: 1px;
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.resetBtn {
+  margin-top: 10px;
+  width: 100%;
+  padding: 6px;
+  border: 1px solid var(--dsw-alias-border-inverted, rgba(0,0,0,.1));
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary, #3a4150);
+  cursor: pointer;
+}
+
+/* ── 爱心特效 ────────────────────────────────────── */
+
+.heart {
+  position: absolute;
+  left: 34px;
+  top: 6px;
+  font-size: 14px;
+  color: #ff7da8;
+  pointer-events: none;
+  animation: pHeart 0.9s ease-out forwards;
+}
+
+/* ── 设置页 ──────────────────────────────────────── */
+
+.settings {
+  padding: 16px;
+  max-width: 460px;
+}
+
+.settingsPreview {
+  display: grid;
+  place-items: center;
+  padding: 14px;
+  border: 1px dashed var(--dsw-alias-border-inverted, rgba(0,0,0,.12));
+  border-radius: 14px;
+}
+
+.settingsFigure {
+  width: 150px;
+  height: 150px;
+  filter: drop-shadow(0 11px 9px rgba(35, 48, 80, 0.2));
+  perspective: 600px;
+}
+
+.settingsFoot {
+  margin-top: 12px;
+  color: var(--dsw-alias-label-tertiary, #7a8292);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+/* ── 关键帧 ──────────────────────────────────────── */
+
+@keyframes pBounce {
+  0%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-34px) scale(0.96, 1.04); }
+  65% { transform: translateY(4px) scale(1.05, 0.94); }
+}
+
+@keyframes pTilt {
+  35% { transform: rotate(-19deg) translate(-8px, 5px); }
+  70% { transform: rotate(8deg); }
+}
+
+@keyframes pScan {
+  0%, 100% { transform: translate(0); }
+  30% { transform: translate(-24px, 2px); }
+  70% { transform: translate(24px, -2px); }
+}
+
+@keyframes pTurn {
+  0%, 100% { transform: rotateY(0); }
+  48% { transform: rotateY(180deg) scale(0.82); }
+}
+
+@keyframes pPulse {
+  0%, 100% { transform: scale(1); }
+  35% { transform: scale(1.08, 0.92); }
+  65% { transform: scale(0.94, 1.08); }
+}
+
+@keyframes pGlitch {
+  0%, 100% { transform: translate(0); }
+  25% { transform: translate(-9px, 3px); filter: drop-shadow(8px 0 #e36f3d); }
+  50% { transform: translate(10px, -3px); filter: drop-shadow(-8px 0 #79e2d0); }
+  75% { transform: translate(-4px, 1px); }
+}
+
+@keyframes pHeart {
+  0%   { opacity: 0; transform: translate(var(--dx, 0px), 6px) scale(0.5); }
+  25%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(var(--dx, 0px) * 1.6), -26px) scale(1.2); }
+}
+
+@keyframes pShimmer {
+  to { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .body, .barFill, .heart, .eyes {
+    animation: none !important;
+  }
+}
