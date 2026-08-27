@@ -7,3 +7,6 @@ Desktop.ini
 .idea/
 *.log
 node_modules/
+
+# 发布压缩包（按需构建，不入库）
+*.zip
