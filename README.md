@@ -14,14 +14,21 @@
 把下面整段提示语**直接粘贴给 DeepSeek Harness 的对话**，它会自动下载、复制、注册组合并完成构建：
 
 ```
-请安装 GrokBot 桌宠常驻插件，完成后报告结果。
+请安装 GrokBot 桌宠常驻插件，完成后报告结果。用 pwsh 工具执行命令，用 edit 工具修改文件。
 
-1. 下载并解压 https://github.com/MEMZ-Edge01/GrokBot_in_DeepseekHerness/releases/download/v2.0.0/dsh-grokbot-pet-resident-v2.0.0.zip
-2. 把 resident\ 复制为 <harness源码根>\packages\client\ui-pet\（已存在先删；源码根 = 含 packages/bundle/web-app/cordis.patch.yml 的目录）
-3. cordis.patch.yml 的 insert 块里 "- id: ui-trajectory" 后插入（已含 "id: ui-pet" 则跳过）：
-   - id: ui-pet
-     name: '@deepseek-ai/dsh-client-ui-pet'
-4. harness 源码根依次执行，每步必须成功：
+1. pwsh — 下载并解压：
+   Invoke-WebRequest -Uri 'https://github.com/MEMZ-Edge01/GrokBot_in_DeepseekHerness/releases/download/v2.0.0/dsh-grokbot-pet-resident-v2.0.0.zip' -OutFile "$env:TEMP\pet-resident.zip"; Expand-Archive "$env:TEMP\pet-resident.zip" "$env:TEMP\pet-resident" -Force
+2. pwsh — 复制包（<harness源码根> = 含 packages\bundle\web-app\cordis.patch.yml 的目录）：
+   Remove-Item "<harness源码根>\packages\client\ui-pet" -Recurse -Force -ErrorAction SilentlyContinue; Copy-Item "$env:TEMP\pet-resident\resident" "<harness源码根>\packages\client\ui-pet" -Recurse -Force
+3. edit — 修改 cordis.patch.yml（若已含 "id: ui-pet" 则跳过），把：
+       - id: ui-trajectory
+         name: '@deepseek-ai/dsh-client-ui-trajectory'
+   替换为：
+       - id: ui-trajectory
+         name: '@deepseek-ai/dsh-client-ui-trajectory'
+       - id: ui-pet
+         name: '@deepseek-ai/dsh-client-ui-pet'
+4. pwsh — 在 harness 源码根依次执行，每步必须成功：
    corepack pnpm install
    corepack pnpm exec tsc -b packages/client/ui-pet/tsconfig.json
    corepack pnpm --filter @deepseek-ai/dsh-client-ui-pet run bundle
