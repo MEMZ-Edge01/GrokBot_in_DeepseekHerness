@@ -1,72 +1,77 @@
 # GrokBot in DeepseekHarness 🐾
 
-> 把 [LaoA-GrokBot](https://github.com/zhulin025/LaoA-GrokBot) 的 GrokBot 宠物带进 DeepSeek Harness Web GUI：可换装、可甩飞、带物理反弹的桌面宠物插件。
+> 把 [LaoA-GrokBot](https://github.com/zhulin025/LaoA-GrokBot) 的 GrokBot 宠物带进 DeepSeek Harness Web GUI：可换装、可甩飞、带物理反弹的**常驻**桌面宠物插件（随 `dsh web` 启动自动加载，重启不丢失）。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Platform](https://img.shields.io/badge/Platform-DeepSeek%20Harness%20Web-5b7fe5)
 
 ---
 
-## 两种安装方式
+## 安装
 
-| | **常驻插件**（推荐） | **动态插件** |
-|---|---|---|
-| 生效方式 | 随 `dsh web` 启动自动加载 | 需在对话中手动安装 |
-| 重启后 | ✅ 自动存在 | ❌ 需重新安装 |
-| 实现方式 | 纯 Client 包，读取会话快照 | 动态 Cordis 插件，Host 事件监听 |
-| 安装难度 | 需改 harness 源码 + 重新构建 | 对话中一键安装 |
+### 方式一：让 DeepSeek Harness 自动安装（推荐）
 
----
+把下面整段提示语**直接粘贴给 DeepSeek Harness 的对话**，它会自动下载、复制、注册组合并完成构建：
 
-## 方式一：常驻插件（推荐）
+```
+请把 GrokBot 桌宠常驻插件安装到本 DeepSeek Harness 源码中，全部完成后报告结果。
 
-### 快速安装
+仓库：https://github.com/MEMZ-Edge01/GrokBot_in_DeepseekHerness（MIT 许可，宠物造型数据移植自 LaoA-GrokBot）
+
+步骤：
+1. 下载 https://github.com/MEMZ-Edge01/GrokBot_in_DeepseekHerness/releases/download/v2.0.0/dsh-grokbot-pet-resident-v2.0.0.zip 并解压到临时目录（用 pwsh 的 Invoke-WebRequest + Expand-Archive）。
+2. 定位 harness 源码根目录（含 packages/bundle/web-app/cordis.patch.yml 的目录）。把解压出的 resident\ 目录整个复制为 <harness根>\packages\client\ui-pet\（若目标已存在，先删除再复制）。
+3. 编辑 <harness根>\packages\bundle\web-app\cordis.patch.yml：在 insert 块里 "- id: ui-trajectory" 这一行之后插入两行（若文件已含 "id: ui-pet" 则跳过）：
+   - id: ui-pet
+     name: '@deepseek-ai/dsh-client-ui-pet'
+4. 在 harness 源码根目录依次执行以下命令，每一步都必须成功：
+   corepack pnpm install
+   corepack pnpm exec tsc -b packages/client/ui-pet/tsconfig.json
+   corepack pnpm --filter @deepseek-ai/dsh-client-ui-pet run bundle
+   corepack pnpm run build:web
+5. 完成后向用户报告：重启 dsh web 后刷新浏览器（Ctrl+Shift+R），右下角会出现蓝色 GrokBot 桌宠。
+```
+
+### 方式二：手动安装
 
 ```bash
 # 1. 克隆本仓库
 git clone https://github.com/MEMZ-Edge01/GrokBot_in_DeepseekHerness.git
-cd GrokBot_in_DeepseekHerness
 
-# 2. 运行安装脚本（自动复制包 + 注册组合 + 构建）
+# 2. 一键脚本（自动复制包 + 注册组合 + 构建）
 powershell -ExecutionPolicy Bypass -File .\resident\install-resident.ps1 \
   -HarnessRoot <你的 DeepSeek Harness 源码根目录>
 
-# 3. 重启 harness → 桌宠自动出现在右下角
+# 3. 重启 dsh web → 桌宠自动出现在右下角
 ```
 
-### 手动安装
+不用脚本的手抄版（等价三步）：
 
-1. 把 `resident/` 复制为 `<harness-root>/packages/client/ui-pet/`
-2. 在 `<harness-root>/packages/bundle/web-app/cordis.patch.yml` 的 `insert` 块末尾添加：
+1. 把 `resident/` 复制为 `<harness根>/packages/client/ui-pet/`；
+2. 在 `<harness根>/packages/bundle/web-app/cordis.patch.yml` 的 `insert` 块中、`- id: ui-trajectory` 后添加：
+
    ```yaml
        - id: ui-pet
          name: '@deepseek-ai/dsh-client-ui-pet'
    ```
-3. 在 harness 源码根目录运行：
+
+3. 在 harness 源码根目录依次运行：
+
    ```bash
    corepack pnpm install
    corepack pnpm exec tsc -b packages/client/ui-pet/tsconfig.json
    corepack pnpm --filter @deepseek-ai/dsh-client-ui-pet run bundle
    corepack pnpm run build:web
    ```
-4. 重启 `dsh web` → 桌宠自动加载
 
----
-
-## 方式二：动态插件（临时使用）
-
-1. 解压 Release 中的 `dsh-grokbot-pet-dynamic-v*.zip`
-2. 运行 `install.ps1`
-3. 把生成的 `install-prompt.md` 发给 DeepSeek Harness 对话
-4. 点击 cordis_run 卡片上的批准（建议双击 ✓✓）
-5. 每次 harness 重启需重复以上步骤
+重启 `dsh web` 即生效。
 
 ---
 
 ## ✨ 功能特性
 
 ### 原版 GrokBot 渲染（严格移植自 LaoA-GrokBot，MIT）
-- 6 组官方表达环（待机/思考/工作/开心/倾听/惊讶），原版眼睛多边形 + 3D 注视 + 眨眼 + 弹簧变形
+- 6 组官方表情环（待机/思考/工作/开心/倾听/惊讶），原版眼睛多边形 + 3D 注视 + 眨眼 + 弹簧变形
 - 原版状态动画：bounce 果冻跳 / tilt 歪头 / scan 眼球扫动 / glitch 毛刺
 - 10 种颜色（官方 hex + 0.22s 过渡）、8 种形状（官方 SVG path）
 - 4 件身体部件（双手/双脚/尾巴/天线）+ 4 件趣味配饰（草帽/眼镜/领结/披风）**多选叠穿**
@@ -106,13 +111,12 @@ powershell -ExecutionPolicy Bypass -File .\resident\install-resident.ps1 \
 ## 📁 文件结构
 
 ```
-├── install.ps1 / plugin/       # 动态版（对话中安装，需每次重启后重装）
-├── resident/                   # 常驻版源码（复制到 harness 源码内使用）
+├── resident/                   # 常驻插件源码（复制到 harness 源码内使用）
 │   ├── install-resident.ps1    # 自动安装脚本
 │   └── src/client/
 │       ├── pet.tsx             # 主组件 + GrokbotFigure
 │       ├── store.ts            # 会话快照 → 宠物状态桥接
-│       ├── data.ts             # 颜色/形状/部件/配饰
+│       ├── data.ts             # 颜色/形状/部件/配饰/设置
 │       ├── pet.module.css      # 样式
 │       └── expressions.json    # 原版表情环数据（内嵌）
 ```
@@ -125,4 +129,4 @@ MIT License — 宠物造型数据来自 [LaoA-GrokBot](https://github.com/zhuli
 
 ---
 
-*v1.0.0 动态插件版 · v2.0.0 常驻插件版*
+*v2.0.0 常驻插件版*

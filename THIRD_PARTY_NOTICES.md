@@ -18,7 +18,7 @@
 
 ### 数据文件说明
 
-`plugin/data/grokbot-exprs.json` 由 LaoA-GrokBot 仓库的 `original-data.js` 提取生成（`EXPRESSIONS` 中的 6 组表情环数据，坐标保留两位小数），未做任何修改。
+`resident/src/client/expressions.json` 由 LaoA-GrokBot 仓库的 `original-data.js` 提取生成（`EXPRESSIONS` 中的 6 组表情环数据，坐标保留两位小数），未做任何修改。
 
 ### 署名倡议（来自原项目 README）
 
