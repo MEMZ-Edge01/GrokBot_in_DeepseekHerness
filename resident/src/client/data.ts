@@ -57,6 +57,8 @@ export interface AppearanceState {
   color: string
   accessories: string[]
   parts: string[]
+  /** 宠物名字：点击宠物时气泡标题与提示文字。 */
+  name: string
 }
 
 export const DEFAULT_APPEARANCE: AppearanceState = {
@@ -64,4 +66,5 @@ export const DEFAULT_APPEARANCE: AppearanceState = {
   color: '#2f86ed',
   accessories: [],
   parts: [],
+  name: 'DSH 桌宠',
 }

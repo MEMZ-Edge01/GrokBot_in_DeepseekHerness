@@ -7,6 +7,14 @@
 import type { ConversationSnapshot } from '@deepseek-ai/dsh-client-runtime/client'
 import type { SessionId } from '@deepseek-ai/dsh-api-remotes/client'
 
+/** Provider-reported token usage of one finalized turn (buckets the pet prices). */
+export interface PetUsage {
+  input: number
+  output: number
+  cacheRead: number
+  cacheWrite: number
+}
+
 /** Derived pet state computed from the active session's ConversationSnapshot. */
 export interface PetState {
   running: boolean
@@ -16,6 +24,8 @@ export interface PetState {
   elapsedMs: number
   turnCount: number
   hasSession: boolean
+  /** Newest finalized assistant message's provider usage, when any. */
+  lastUsage: PetUsage | null
 }
 
 const ZERO_STATE: PetState = {
@@ -26,6 +36,7 @@ const ZERO_STATE: PetState = {
   elapsedMs: 0,
   turnCount: 0,
   hasSession: false,
+  lastUsage: null,
 }
 
 function derivePetState(snap: ConversationSnapshot | null): PetState {
@@ -52,6 +63,23 @@ function derivePetState(snap: ConversationSnapshot | null): PetState {
     }
   }
 
+  // Newest finalized assistant message carrying provider usage.
+  let lastUsage: PetUsage | null = null
+  for (let i = snap.nodes.length - 1; i >= 0; i--) {
+    const node = snap.nodes[i] as { kind?: string; usage?: unknown } | undefined
+    if (node == null || node.kind !== 'assistant') continue
+    const raw = node.usage as Record<string, unknown> | null | undefined
+    if (raw == null || typeof raw !== 'object') continue
+    const input = typeof raw.inputTokens === 'number' ? raw.inputTokens : 0
+    const output = typeof raw.outputTokens === 'number' ? raw.outputTokens : 0
+    const cacheRead = typeof raw.cacheReadTokens === 'number' ? raw.cacheReadTokens : 0
+    const cacheWrite = typeof raw.cacheWriteTokens === 'number' ? raw.cacheWriteTokens : 0
+    if (input + output + cacheRead + cacheWrite > 0) {
+      lastUsage = { input, output, cacheRead, cacheWrite }
+      break
+    }
+  }
+
   return {
     running,
     currentTool,
@@ -60,6 +88,7 @@ function derivePetState(snap: ConversationSnapshot | null): PetState {
     elapsedMs,
     turnCount: snap.turnTimings.size,
     hasSession: true,
+    lastUsage,
   }
 }
 

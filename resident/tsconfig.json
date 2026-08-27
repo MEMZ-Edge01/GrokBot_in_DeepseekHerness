@@ -6,6 +6,7 @@
     { "path": "../../api/remotes/tsconfig.client.json" },
     { "path": "../../../vendor/cordis" },
     { "path": "../runtime" },
-    { "path": "../ui-slots" }
+    { "path": "../ui-slots" },
+    { "path": "../../runtime-diagnostics/invariants" }
   ]
 }

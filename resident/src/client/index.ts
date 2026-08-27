@@ -13,7 +13,7 @@ import { createElement } from 'react'
 import { createPetStateStore } from './store.ts'
 import { PetView, PetSettingsPage } from './pet.tsx'
 
-export const inject = ['slots', 'sessions'] as const
+export const inject = ['slots', 'sessions', 'timer'] as const
 
 export function apply(ctx: ClientContext): void {
   const store = createPetStateStore(ctx.sessions as any)

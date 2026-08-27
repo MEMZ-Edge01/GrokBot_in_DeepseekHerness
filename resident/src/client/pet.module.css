@@ -215,6 +215,25 @@
 }
 
 .panelTitle  { font-weight: 600; }
+
+/* 名字输入 */
+.nameInput {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--dsw-alias-border-inverted, rgba(0,0,0,.1));
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dsw-alias-label-primary, #20242e);
+  font-size: 12px;
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.nameInput:focus {
+  border-color: var(--dsw-alias-state-info-primary, #2f86ed);
+}
+
 .panelLabel  { display: flex; align-items: baseline; justify-content: space-between; margin: 9px 2px 6px; }
 .panelLabel strong  { font-size: 12px; }
 .panelLabel span    { color: var(--dsw-alias-label-tertiary, #74766e); font-size: 10px; }

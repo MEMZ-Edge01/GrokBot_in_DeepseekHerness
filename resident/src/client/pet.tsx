@@ -8,7 +8,7 @@
  * @module @deepseek-ai/dsh-client-ui-pet/client/pet
  */
 import { createElement, useEffect, useRef, useState, useCallback, useSyncExternalStore } from 'react'
-import type { PetStateStore } from './store.ts'
+import type { PetStateStore, PetUsage } from './store.ts'
 import css from './pet.module.css'
 import {
   COLORS, SHAPES, PARTS, ACCESSORIES, DEFAULT_APPEARANCE,
@@ -121,6 +121,36 @@ function sendNotification(title: string, body: string, tag: string): void {
 
 function fmtElapsed(ms: number): string {
   return Math.max(0, Math.round(ms / 1000)) + 's'
+}
+
+// ── 用量金额 ─────────────────────────────────────────────────────────
+
+/** DeepSeek 官方定价近似值（元 / 百万 tokens），仅用于估算展示。 */
+const PRICE_PER_M: Record<keyof PetUsage, number> = {
+  input: 2,
+  output: 8,
+  cacheRead: 0.5,
+  cacheWrite: 2,
+}
+
+function usageTokens(u: PetUsage | null): number {
+  return u == null ? 0 : u.input + u.output + u.cacheRead + u.cacheWrite
+}
+
+function usageCost(u: PetUsage | null): number {
+  if (u == null) return 0
+  return (u.input * PRICE_PER_M.input
+    + u.output * PRICE_PER_M.output
+    + u.cacheRead * PRICE_PER_M.cacheRead
+    + u.cacheWrite * PRICE_PER_M.cacheWrite) / 1e6
+}
+
+function fmtTokens(n: number): string {
+  return n >= 10000 ? (n / 1000).toFixed(1) + 'k' : String(Math.round(n))
+}
+
+function fmtCost(c: number): string {
+  return '≈¥' + (c >= 0.01 ? c.toFixed(2) : c.toFixed(4))
 }
 
 // ── color/shape helpers ──────────────────────────────────────────────
@@ -304,6 +334,7 @@ let _appearance: AppearanceState = (() => {
     color: colorOk ? saved.color! : DEFAULT_APPEARANCE.color,
     accessories: Array.isArray(saved.accessories) ? saved.accessories.filter((id) => ACCESSORIES.some((a) => a[0] === id)) : [],
     parts: Array.isArray(saved.parts) ? saved.parts.filter((id) => PARTS.some((p) => p[0] === id)) : [],
+    name: typeof saved.name === 'string' && saved.name.trim() !== '' ? saved.name.trim() : DEFAULT_APPEARANCE.name,
   }
 })()
 
@@ -362,6 +393,7 @@ export function PetView({ store, ctx }: PetViewProps) {
   const [hearts, setHearts] = useState<{ id: number; dx: number; delay: number }[]>([])
   const [happyUntil, setHappyUntil] = useState(0)
   const [surprisedUntil, setSurprisedUntil] = useState(0)
+  const [listeningUntil, setListeningUntil] = useState(0)
   const [hovering, setHovering] = useState(false)
   const [flying, setFlying] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
@@ -401,13 +433,16 @@ export function PetView({ store, ctx }: PetViewProps) {
     if (was == null) return
     if (running && !was) {
       if (soundOnRef.current && !documentHidden()) playSound('start')
-      sendNotification('DSH · 请求已开始', `已累计 ${snap.turnCount} 轮请求`, 'dsh-pet-start')
+      sendNotification(`${appearance.name} · 请求已开始`, `已累计 ${snap.turnCount} 轮请求`, 'dsh-pet-start')
       setHappyUntil(0)
     } else if (!running && was) {
       if (soundOnRef.current && !documentHidden()) playSound('end')
       const secs = Math.max(0, Math.round(snap.elapsedMs / 1000))
-      sendNotification('DSH · 请求完成', `用时约 ${secs} 秒 · 共 ${snap.turnCount} 轮请求`, 'dsh-pet-end')
+      sendNotification(`${appearance.name} · 请求完成`, `用时约 ${secs} 秒 · 共 ${snap.turnCount} 轮请求`, 'dsh-pet-end')
       setHappyUntil(Date.now() + 2600)
+      // 每轮结束后自动弹出气泡展示本轮用量，6 秒后自动收起
+      setBubbleOpen(true)
+      ctx.timeout(() => setBubbleOpen(false), 6000)
     }
   }, [running])
 
@@ -563,25 +598,35 @@ export function PetView({ store, ctx }: PetViewProps) {
     if (samples.length > 12) samples.shift()
   }
 
-  const onPointerUp = () => {
+  const onPointerUp = (ev: globalThis.PointerEvent) => {
     const drag = dragRef.current; dragRef.current = null
     if (drag == null) return
     if (!drag.moved) {
       if (soundOnRef.current) playSound('pet')
-      setBubbleOpen((o) => !o); spawnHearts(); return
+      // 点击：随机启用一种快捷动作（原版「果冻感快捷动作」）
+      const actions = ['happy', 'surprised', 'listening'] as const
+      const picked = actions[Math.floor(Math.random() * actions.length)]!
+      if (picked === 'happy') { setHappyUntil(Date.now() + 1600); spawnHearts() }
+      else if (picked === 'surprised') setSurprisedUntil(Date.now() + 1000)
+      else setListeningUntil(Date.now() + 1400)
+      setBubbleOpen((o) => !o)
+      return
     }
+    // 距离判定：拖得太短只是移动位置，不甩出
+    const totalDist = Math.hypot(ev.clientX - drag.sx, ev.clientY - drag.sy)
+    if (totalDist < 24) return
     const nowT = performance.now()
     const samples = dragSamplesRef.current.filter((sp) => nowT - sp.t <= 120)
     if (samples.length < 2 || nowT - samples[samples.length - 1]!.t > 100) return
     const first = samples[0]!, last = samples[samples.length - 1]!
     const dt = last.t - first.t
     if (dt <= 8) return
-    let vx = (last.x - first.x) / dt * 1000, vy = (last.y - first.y) / dt * 1000
+    // 速度匹配：甩出速度 = 松手瞬间的鼠标速度，不加增益
+    let vx = (last.x - first.x) / dt * 1000
+    let vy = (last.y - first.y) / dt * 1000
     const speed = Math.hypot(vx, vy)
     if (speed < 120) return
-    vx *= 1.35; vy *= 1.35
-    const boosted = Math.hypot(vx, vy)
-    if (boosted > 3800) { const s = 3800 / boosted; vx *= s; vy *= s }
+    if (speed > 3800) { const s = 3800 / speed; vx *= s; vy *= s }
     startFlight(vx, vy)
     if (soundOnRef.current && !documentHidden()) playSound('throw')
     setSurprisedUntil(Date.now() + 900)
@@ -639,6 +684,7 @@ export function PetView({ store, ctx }: PetViewProps) {
   const nowRender = Date.now()
   const petState = flying ? 'surprised'
     : surprisedUntil > nowRender ? 'surprised'
+    : listeningUntil > nowRender ? 'listening'
     : isHappy ? 'happy'
     : running ? (snap.currentTool != null ? 'working' : 'thinking')
     : hovering ? 'listening' : 'idle'
@@ -657,6 +703,7 @@ export function PetView({ store, ctx }: PetViewProps) {
 
   const bodyClass = css.body + (motionCls !== '' ? ' ' + motionCls : '')
   const toolName = snap.currentTool ?? '模型推理'
+  const petName = appearance.name
 
   // Bubble content
   const bubbleEl = running
@@ -666,8 +713,12 @@ export function PetView({ store, ctx }: PetViewProps) {
       createElement('div', { className: css.bubbleSub }, `第 ${snap.turn ?? '?'} 轮 · 第 ${snap.step ?? '?'} 步 · 已 ${snap.turnCount} 轮`),
       createElement('div', { className: css.bar }, createElement('div', { className: css.barFill })))
     : createElement('div', { className: css.bubble },
-      createElement('div', { className: css.bubbleTitle }, 'DSH 桌宠'),
-      createElement('div', { className: css.bubbleLine }, !snap.hasSession ? '正在连接…' : `就绪 · 已完成 ${snap.turnCount} 轮`))
+      createElement('div', { className: css.bubbleTitle }, petName),
+      createElement('div', { className: css.bubbleLine }, !snap.hasSession ? '正在连接…' : `就绪 · 已完成 ${snap.turnCount} 轮`),
+      snap.lastUsage != null
+        ? createElement('div', { className: css.bubbleSub },
+          `上次用量 ${fmtTokens(usageTokens(snap.lastUsage))} tokens · ${fmtCost(usageCost(snap.lastUsage))}`)
+        : null)
 
   return createElement('div', { className: css.root, style: { left: pos.x, top: pos.y }, ref: rootRef },
     createElement('div', {
@@ -682,8 +733,8 @@ export function PetView({ store, ctx }: PetViewProps) {
       })),
       createElement('div', {
         className: bodyClass, ref: bodyRef, role: 'img',
-        'aria-label': running ? 'DSH 桌宠：正在处理请求' : 'DSH 桌宠：就绪',
-        title: 'DSH 桌宠 · 左键拖动/点击 · 右键换装',
+        'aria-label': running ? `${petName}：正在处理请求` : `${petName}：就绪`,
+        title: `${petName} · 左键拖动/点击 · 右键换装`,
         onPointerDown, onPointerMove, onPointerUp, onPointerCancel: onPointerUp, onContextMenu,
       }, createElement(GrokbotFigure, { petState, data: EXPR_DATA, simHolder })),
       createElement('div', { className: css.ctls },
@@ -705,6 +756,15 @@ function AppearancePanelInner() {
   const color = colorHex(a)
   return createElement('div', { className: css.panel },
     createElement('div', { className: css.panelTitle }, '桌宠外观'),
+    createElement('div', { className: css.panelLabel }, createElement('strong', null, '名字'), createElement('span', null, '点击宠物时显示')),
+    createElement('input', {
+      className: css.nameInput, type: 'text', value: a.name, maxLength: 24, placeholder: DEFAULT_APPEARANCE.name,
+      onChange: (ev: { target: { value: string } }) => setAppearance({ ...a, name: ev.target.value }),
+      onBlur: (ev: { target: { value: string } }) => {
+        const t = ev.target.value.trim()
+        if (t === '') setAppearance({ ...a, name: DEFAULT_APPEARANCE.name })
+      },
+    }),
     createElement('div', { className: css.panelLabel }, createElement('strong', null, '颜色'), createElement('span', null, COLORS.find((c) => c[2] === color)?.[1] ?? '')),
     createElement('div', { className: css.panelRow },
       ...COLORS.map((c) => createElement('button', {
