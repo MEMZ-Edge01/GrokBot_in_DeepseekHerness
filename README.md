@@ -105,8 +105,8 @@ powershell -ExecutionPolicy Bypass -File .\resident\install-resident.ps1 \
 - 💰 每轮对话结束后自动弹出气泡，显示本轮用量（tokens + 估算金额）
 - 💬 进度气泡（工具名/请求次数/步数/用时/进度条）
 - 🔊 WebAudio 合成音效（请求/工具/回合/弹跳音）
-- 🔔 Chrome → Windows 桌面通知（需点 🔕 授权）
-- 右键换装面板 + 设置 → 桌宠外观（带实时预览）
+- 🔔 Chrome → Windows 桌面通知（右键菜单 → 控制 → 通知授权）
+- 右键菜单整合「换装 + 控制」：颜色/形状/部件/配饰 + 音效/通知/隐藏，一处搞定；设置 → 桌宠外观（带实时预览）
 
 ---
 

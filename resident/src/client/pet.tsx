@@ -663,8 +663,6 @@ export function PetView({ store, ctx }: PetViewProps) {
   // Pointer handlers
   const onPointerDown = (ev: globalThis.PointerEvent) => {
     if (typeof ev.button === 'number' && ev.button !== 0) return
-    const target = ev.target as any
-    if (target != null && typeof target.closest === 'function' && target.closest('.dsh-pet-ctl') != null) return
     getAudio()
     stopFlight()
     const s = simHolder.current
@@ -744,7 +742,7 @@ export function PetView({ store, ctx }: PetViewProps) {
     getAudio(); stopFlight()
     const w = typeof window !== 'undefined' ? window as any : null
     const vw = w == null ? 1200 : w.innerWidth, vh = w == null ? 800 : w.innerHeight
-    setMenu({ x: clamp(ev.clientX - 122, 8, Math.max(8, vw - 260)), y: clamp(ev.clientY - 380, 8, Math.max(8, vh - 400)) })
+    setMenu({ x: clamp(ev.clientX - 122, 8, Math.max(8, vw - 260)), y: clamp(ev.clientY - 430, 8, Math.max(8, vh - 470)) })
   }
 
   // Settings
@@ -827,28 +825,36 @@ export function PetView({ store, ctx }: PetViewProps) {
         title: `${petName} · 左键拖动/点击 · 右键换装`,
         onPointerDown, onPointerMove, onPointerUp, onPointerCancel: onPointerUp, onContextMenu,
       }, createElement(GrokbotFigure, { petState, data: EXPR_DATA, simHolder })),
-      createElement('div', { className: css.ctls },
-        createElement('button', { type: 'button', className: css.ctl, title: soundOn ? '关闭音效' : '开启音效', onClick: toggleSound }, soundOn ? '🔊' : '🔇'),
-        createElement('button', { type: 'button', className: css.ctl + (notifyOn ? ' ' + css.ctlOn : ''), title: '桌面通知（Chrome → Windows）', onClick: toggleNotify }, notifyOn ? '🔔' : '🔕'),
-        createElement('button', { type: 'button', className: css.ctl, title: '隐藏桌宠', onClick: hidePet }, '👋'),
-      ),
       notice != null ? createElement('div', { className: css.notice }, notice) : null,
     ),
-    menuOpen ? createElement('div', { className: css.panelWrap, style: { left: menu!.x, top: menu!.y } },
-      createElement(AppearancePanelInner)) : null,
+    menuOpen ? createElement('div', { className: css.panelWrap + ' dsh-pet-panel', style: { left: menu!.x, top: menu!.y } },
+      createElement(AppearancePanelInner, {
+        variant: 'menu',
+        soundOn, notifyOn,
+        onToggleSound: toggleSound,
+        onToggleNotify: toggleNotify,
+        onHide: hidePet,
+      })) : null,
   )
 }
 
 // ── AppearancePanel（右键换装 / 设置页共用）──────────────────────────
 
 interface AppearancePanelProps {
-  /** 'menu'：右键换装（仅颜色/形状/部件/配饰）；'settings'：设置页（另含名字/眼睛跟随/快捷动作）。 */
+  /** 'menu'：右键换装（仅颜色/形状/部件/配饰 + 控制）；'settings'：设置页（另含名字/眼睛跟随/快捷动作）。 */
   variant?: 'menu' | 'settings'
   /** 手动触发快捷动作的回调（仅设置页传入）。 */
   onAction?: (name: string) => void
+  /** 音效开关状态与回调（仅右键菜单传入）。 */
+  soundOn?: boolean
+  notifyOn?: boolean
+  onToggleSound?: () => void
+  onToggleNotify?: () => void
+  /** 隐藏桌宠（仅右键菜单传入）。 */
+  onHide?: () => void
 }
 
-function AppearancePanelInner({ variant = 'menu', onAction }: AppearancePanelProps) {
+function AppearancePanelInner({ variant = 'menu', onAction, soundOn, notifyOn, onToggleSound, onToggleNotify, onHide }: AppearancePanelProps) {
   const a = useAppearance()
   const color = colorHex(a)
   const settings = variant === 'settings'
@@ -896,6 +902,25 @@ function AppearancePanelInner({ variant = 'menu', onAction }: AppearancePanelPro
         key: ac[0], type: 'button', title: ac[1], 'aria-pressed': String(a.accessories.includes(ac[0])),
         onClick: () => setAppearance({ ...a, accessories: toggleId(a.accessories, ac[0]) }),
       }, createElement('b', null, ac[2]), createElement('span', null, ac[1])))),
+    // 控制（音效/通知/隐藏）——原悬停球合并进右键菜单
+    !settings
+      ? createElement('div', null,
+        createElement('div', { className: css.panelLabel }, createElement('strong', null, '控制')),
+        createElement('div', { className: css.toggleBtn + ' ' + css.ctlRow },
+          createElement('button', {
+            type: 'button', title: soundOn ? '关闭音效' : '开启音效', 'aria-pressed': String(soundOn ?? false),
+            onClick: () => onToggleSound?.(),
+          }, createElement('b', null, soundOn ? '✓' : '—'), createElement('span', null, '音效')),
+          createElement('button', {
+            type: 'button', title: '桌面通知（Chrome → Windows）', 'aria-pressed': String(notifyOn ?? false),
+            onClick: () => onToggleNotify?.(),
+          }, createElement('b', null, notifyOn ? '✓' : '—'), createElement('span', null, '通知')),
+          createElement('button', {
+            type: 'button', title: '隐藏桌宠',
+            onClick: () => onHide?.(),
+          }, createElement('b', null, '👋'), createElement('span', null, '隐藏')),
+        ))
+      : null,
     settings ? createElement('div', { className: css.panelLabel }, createElement('strong', null, '眼睛跟随'),
       createElement('span', null, a.gazeAlways ? '始终注视鼠标' : '仅悬停时注视')) : null,
     settings ? createElement('div', { className: css.toggleBtn },

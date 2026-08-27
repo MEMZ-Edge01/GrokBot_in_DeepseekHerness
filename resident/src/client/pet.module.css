@@ -121,44 +121,6 @@
 .bar      { height: 4px; margin-top: 6px; border-radius: 2px; background: var(--dsw-alias-interactive-bg-hover, rgba(0,0,0,.06)); overflow: hidden; }
 .barFill  { height: 100%; width: 45%; border-radius: 2px; background: linear-gradient(90deg, #6f93ff, #a5b8ff, #6f93ff); background-size: 200% 100%; animation: pShimmer 1.2s linear infinite; }
 
-/* ── 控制按钮 ────────────────────────────────────── */
-
-.ctls {
-  position: absolute;
-  left: 6px;
-  top: 86px;
-  display: flex;
-  gap: 4px;
-  opacity: 0;
-  transition: opacity 160ms ease;
-  pointer-events: none;
-}
-
-.box:hover .ctls,
-.ctls:focus-within {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.ctl {
-  width: 24px;
-  height: 24px;
-  display: grid;
-  place-items: center;
-  padding: 0;
-  border: 1px solid var(--dsw-alias-border-inverted, rgba(0,0,0,.08));
-  border-radius: 12px;
-  background: var(--dsw-specific-menu, #fff);
-  color: var(--dsw-alias-label-secondary, #3a4150);
-  font-size: 12px;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0,0,0,.12);
-}
-
-.ctl:hover  { background: var(--dsw-alias-interactive-bg-hover, rgba(0,0,0,.05)); }
-.ctlOn      { background: var(--dsw-alias-state-info-primary, #4a7dff); color: #fff; }
-.ctlOn:hover { background: var(--dsw-alias-state-info-primary, #4a7dff); }
-
 /* ── 通知弹窗 ────────────────────────────────────── */
 
 .notice {
@@ -212,6 +174,9 @@
   color: var(--dsw-alias-label-primary, #20242e);
   font-size: 12px;
   pointer-events: auto;
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .panelTitle  { font-weight: 600; }
@@ -313,6 +278,11 @@
   margin-top: 1px;
   font-size: 9px;
   white-space: nowrap;
+}
+
+/* 右键菜单控制（音效/通知/隐藏）：三列布局，覆盖 .toggleBtn 的四列 */
+.ctlRow {
+  grid-template-columns: repeat(3, 1fr);
 }
 
 /* 快捷动作按钮（右键菜单） */
