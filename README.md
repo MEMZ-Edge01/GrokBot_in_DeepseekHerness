@@ -29,7 +29,7 @@
    corepack pnpm exec tsc -b packages/client/ui-pet/tsconfig.json
    corepack pnpm --filter @deepseek-ai/dsh-client-ui-pet run bundle
    corepack pnpm run build:web
-5. 完成后向用户报告：重启 dsh web 后刷新浏览器（Ctrl+Shift+R），右下角会出现蓝色 GrokBot 桌宠。
+5. 完成后向用户报告：重启 dsh web 后刷新浏览器（Ctrl+Shift+R），对话输入框右上方会出现蓝色 GrokBot 桌宠。
 ```
 
 ### 方式二：手动安装

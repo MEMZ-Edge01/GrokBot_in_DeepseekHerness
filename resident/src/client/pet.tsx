@@ -368,6 +368,26 @@ function useAppearance(): AppearanceState {
   return val
 }
 
+/**
+ * 对话输入框（composer）右上方的默认落点：宠物底部悬于输入框上沿、
+ * 右侧对齐输入框右缘。输入框尚未渲染/不可见时返回 null。
+ */
+function composerPos(): { x: number; y: number } | null {
+  const d = typeof document !== 'undefined' ? document : null
+  if (d == null) return null
+  const card = d.querySelector('[data-composer-card]') as HTMLElement | null
+  if (card == null) return null
+  const r = card.getBoundingClientRect()
+  if (r.width <= 0 || r.height <= 0) return null
+  const w = typeof window !== 'undefined' ? window : null as any
+  const vw = w == null ? 1200 : w.innerWidth
+  const vh = w == null ? 800 : w.innerHeight
+  return {
+    x: clamp(r.right - 84 - 8, 8, Math.max(8, vw - 92)),
+    y: clamp(r.top - 84 - 10, 8, Math.max(8, vh - 92)),
+  }
+}
+
 // ── PetView ──────────────────────────────────────────────────────────
 
 interface PetViewProps {
@@ -392,7 +412,8 @@ export function PetView({ store, ctx }: PetViewProps) {
     if (saved != null && typeof saved.x === 'number') {
       return { x: clamp(saved.x, 0, Math.max(0, vw - 84)), y: clamp(saved.y, 0, Math.max(0, vh - 84)) }
     }
-    return { x: Math.max(0, vw - 100), y: Math.max(0, vh - 130) }
+    // 首次启动默认位置：对话输入框右上方；输入框尚未渲染时先落右下角兜底
+    return composerPos() ?? { x: Math.max(0, vw - 100), y: Math.max(0, vh - 130) }
   })
   const [visible, setVisible] = useState(() => lsGet<boolean>('visible', true))
   const [soundOn, setSoundOn] = useState(() => lsGet<boolean>('sound', true))
@@ -414,6 +435,8 @@ export function PetView({ store, ctx }: PetViewProps) {
   const prevPetStateRef = useRef<string | null>(null)
   const dragRef = useRef<any>(null)
   const heartSeqRef = useRef(0)
+  // 首次启动（无保存位置）才会执行自动归位
+  const placedRef = useRef(lsGet<{ x: number; y: number } | null>('pos', null) != null)
   soundOnRef.current = soundOn
   notifyOnRef.current = notifyOn
   if (!flightRef.current.active) posRef.current = pos
@@ -481,6 +504,33 @@ export function PetView({ store, ctx }: PetViewProps) {
 
   // Persist position
   useEffect(() => { lsSet('pos', pos) }, [pos])
+
+  // 首次启动定位：输入框尚未渲染时等它出现，再归位到其右上方；用户一开始拖拽即放弃
+  useEffect(() => {
+    if (placedRef.current) return
+    let timer = 0
+    let tries = 0
+    let settled = false
+    const done = () => {
+      settled = true
+      placedRef.current = true
+      if (timer !== 0) { window.clearTimeout(timer); timer = 0 }
+    }
+    const place = () => {
+      if (settled) return
+      const next = composerPos()
+      if (next != null) { setPos(next); done(); return }
+      if (++tries > 30) { done(); return }
+      timer = window.setTimeout(place, 250)
+    }
+    const w = typeof window !== 'undefined' ? window : null as any
+    if (w != null) w.addEventListener('pointerdown', done, { once: true, capture: true })
+    place()
+    return () => {
+      done()
+      if (w != null) w.removeEventListener('pointerdown', done, { capture: true })
+    }
+  }, [])
 
   // Right-click menu close
   const menuOpen = menu != null
