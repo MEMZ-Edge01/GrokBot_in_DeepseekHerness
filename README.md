@@ -45,6 +45,7 @@ powershell -ExecutionPolicy Bypass -File .\resident\install-resident.ps1 \
 3. 在 harness 源码根目录运行：
    ```bash
    corepack pnpm install
+   corepack pnpm exec tsc -b packages/client/ui-pet/tsconfig.json
    corepack pnpm --filter @deepseek-ai/dsh-client-ui-pet run bundle
    corepack pnpm run build:web
    ```
@@ -72,6 +73,10 @@ powershell -ExecutionPolicy Bypass -File .\resident\install-resident.ps1 \
 
 ### 桌面宠物能力
 - 🖱 拖拽 + **惯性物理**（甩出带滑行/动态模糊/残影/碰撞反弹）
+- 🎯 **速度匹配**：甩出速度 = 松手瞬间的鼠标速度；拖拽不足 24px 视为移动、不甩出
+- 🎲 点击宠物随机触发一种快捷动作（开心/惊讶/倾听，原版「果冻感快捷动作」）
+- ✏️ 可在设置里修改宠物名字（气泡标题、提示文字、通知同步替换）
+- 💰 每轮对话结束后自动弹出气泡，显示本轮用量（tokens + 估算金额）
 - 💬 进度气泡（工具名/请求次数/步数/用时/进度条）
 - 🔊 WebAudio 合成音效（请求/工具/回合/弹跳音）
 - 🔔 Chrome → Windows 桌面通知（需点 🔕 授权）
@@ -84,9 +89,16 @@ powershell -ExecutionPolicy Bypass -File .\resident\install-resident.ps1 \
 | 参数 | 默认值 | 说明 |
 | --- | --- | --- |
 | 甩出阈值 | 120 px/s | 低于此速度原地放下 |
-| 初速度增益 | ×1.35 | 甩出力度 |
+| 距离判定 | 24 px | 拖拽距离不足视为移动，不甩出 |
+| 初速度 | ×1.0 | 甩出速度 = 松手瞬间鼠标速度（无增益） |
 | 阻尼 | 0.9/s | 越小滑越远 |
 | 反弹系数 | 0.7 | 撞边/输入框速度保留 |
+
+---
+
+## 用量金额
+
+每轮对话结束后，宠物气泡显示该轮 provider 上报的 tokens 用量与估算金额。估算采用 DeepSeek 官方定价近似值（元/百万 tokens）：输入 ¥2、输出 ¥8、缓存读 ¥0.5、缓存写 ¥2 —— 仅供参考展示，非精确账单。
 
 ---
 

@@ -83,6 +83,7 @@ Push-Location $HarnessRoot
 & corepack pnpm install 2>&1 | Select-Object -Last 5
 
 Write-Host "`n─ 构建 ui-pet 包 ─" -ForegroundColor Cyan
+& corepack pnpm exec tsc -b packages/client/ui-pet/tsconfig.json 2>&1 | Select-Object -Last 5
 & corepack pnpm --filter @deepseek-ai/dsh-client-ui-pet run bundle 2>&1 | Select-Object -Last 8
 
 Write-Host "`n─ 构建前端产物 ─" -ForegroundColor Cyan
