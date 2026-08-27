@@ -787,12 +787,8 @@ export function PetView({ store, ctx }: PetViewProps) {
     try { const r = N.requestPermission(done); if (r != null && typeof r.then === 'function') r.then(done).catch(() => {}) } catch { flashNotice('无法请求通知权限') }
   }
 
-  const hidePet = () => { stopFlight(); if (soundOnRef.current) playSound('bye'); setVisible(false); setBubbleOpen(false); lsSet('visible', false) }
+  const hidePet = () => { stopFlight(); setMenu(null); setHovering(false); if (soundOnRef.current) playSound('bye'); setVisible(false); setBubbleOpen(false); lsSet('visible', false) }
   const showPet = () => { setVisible(true); lsSet('visible', true); if (soundOnRef.current) { getAudio(); playSound('pet') } }
-
-  if (!visible) {
-    return createElement('button', { type: 'button', className: css.reshow, title: '显示 DSH 桌宠', onClick: showPet }, '🐾')
-  }
 
   const nowRender = Date.now()
   const actionActive = action.name !== '' && action.until > nowRender
@@ -832,9 +828,11 @@ export function PetView({ store, ctx }: PetViewProps) {
           `上次用量 ${fmtTokens(usageTokens(snap.lastUsage))} tokens · ${fmtCost(usageCost(snap.lastUsage))}`)
         : null)
 
+  // 顶层始终返回 .root，隐藏/显示只靠 CSS 类切换（.box 与恢复按钮都保持挂载），
+  // 不做顶层元素类型切换，避免隐藏/恢复时界面不即时更新。
   return createElement('div', { className: css.root, style: { left: pos.x, top: pos.y }, ref: rootRef },
     createElement('div', {
-      className: css.box,
+      className: css.box + (visible ? '' : ' ' + css.hidden),
       onPointerEnter: () => setHovering(true), onPointerLeave: onBoxLeave, onPointerMove: onBoxMove,
     },
       (bubbleOpen || running) ? bubbleEl : null,
@@ -863,6 +861,13 @@ export function PetView({ store, ctx }: PetViewProps) {
         onToggleNotify: toggleNotify,
         onHide: hidePet,
       })) : null,
+    // 恢复按钮：始终挂载，宠物可见时用 .hidden 隐藏（不再依赖条件渲染出现）
+    createElement('button', {
+      type: 'button',
+      className: css.reshow + (visible ? ' ' + css.hidden : ''),
+      title: '显示 DSH 桌宠',
+      onClick: showPet,
+    }, '🐾'),
   )
 }
 
