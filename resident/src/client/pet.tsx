@@ -943,6 +943,6 @@ export function PetSettingsPage() {
     createElement('div', { style: { height: 10 } }),
     createElement(AppearancePanelInner, { variant: 'settings', onAction: triggerPreview }),
     createElement('div', { className: css.settingsFoot },
-      '外观即时同步到右下角桌宠，并自动保存。造型与表情数据严格移植自 LaoA-GrokBot（MIT License），配饰与部件支持多选叠穿 — 也可以在桌宠上右键直接换装。'),
+      '外观即时同步到桌宠，并自动保存。造型与表情数据严格移植自 LaoA-GrokBot（MIT License），配饰与部件支持多选叠穿 — 也可以在桌宠上右键直接换装。'),
   )
 }

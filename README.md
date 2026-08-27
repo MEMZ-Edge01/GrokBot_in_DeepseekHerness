@@ -14,22 +14,19 @@
 把下面整段提示语**直接粘贴给 DeepSeek Harness 的对话**，它会自动下载、复制、注册组合并完成构建：
 
 ```
-请把 GrokBot 桌宠常驻插件安装到本 DeepSeek Harness 源码中，全部完成后报告结果。
+请安装 GrokBot 桌宠常驻插件，完成后报告结果。
 
-仓库：https://github.com/MEMZ-Edge01/GrokBot_in_DeepseekHerness（MIT 许可，宠物造型数据移植自 LaoA-GrokBot）
-
-步骤：
-1. 下载 https://github.com/MEMZ-Edge01/GrokBot_in_DeepseekHerness/releases/download/v2.0.0/dsh-grokbot-pet-resident-v2.0.0.zip 并解压到临时目录（用 pwsh 的 Invoke-WebRequest + Expand-Archive）。
-2. 定位 harness 源码根目录（含 packages/bundle/web-app/cordis.patch.yml 的目录）。把解压出的 resident\ 目录整个复制为 <harness根>\packages\client\ui-pet\（若目标已存在，先删除再复制）。
-3. 编辑 <harness根>\packages\bundle\web-app\cordis.patch.yml：在 insert 块里 "- id: ui-trajectory" 这一行之后插入两行（若文件已含 "id: ui-pet" 则跳过）：
+1. 下载并解压 https://github.com/MEMZ-Edge01/GrokBot_in_DeepseekHerness/releases/download/v2.0.0/dsh-grokbot-pet-resident-v2.0.0.zip
+2. 把 resident\ 复制为 <harness源码根>\packages\client\ui-pet\（已存在先删；源码根 = 含 packages/bundle/web-app/cordis.patch.yml 的目录）
+3. cordis.patch.yml 的 insert 块里 "- id: ui-trajectory" 后插入（已含 "id: ui-pet" 则跳过）：
    - id: ui-pet
      name: '@deepseek-ai/dsh-client-ui-pet'
-4. 在 harness 源码根目录依次执行以下命令，每一步都必须成功：
+4. harness 源码根依次执行，每步必须成功：
    corepack pnpm install
    corepack pnpm exec tsc -b packages/client/ui-pet/tsconfig.json
    corepack pnpm --filter @deepseek-ai/dsh-client-ui-pet run bundle
    corepack pnpm run build:web
-5. 完成后向用户报告：重启 dsh web 后刷新浏览器（Ctrl+Shift+R），对话输入框右上方会出现蓝色 GrokBot 桌宠。
+5. 报告：重启 dsh web 并刷新浏览器（Ctrl+Shift+R）后，桌宠出现在对话输入框右上方。
 ```
 
 ### 方式二：手动安装
@@ -42,7 +39,7 @@ git clone https://github.com/MEMZ-Edge01/GrokBot_in_DeepseekHerness.git
 powershell -ExecutionPolicy Bypass -File .\resident\install-resident.ps1 \
   -HarnessRoot <你的 DeepSeek Harness 源码根目录>
 
-# 3. 重启 dsh web → 桌宠自动出现在右下角
+# 3. 重启 dsh web → 桌宠自动出现在对话输入框右上方
 ```
 
 不用脚本的手抄版（等价三步）：
