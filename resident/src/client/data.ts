@@ -69,5 +69,5 @@ export const DEFAULT_APPEARANCE: AppearanceState = {
   accessories: [],
   parts: [],
   name: 'DSH 桌宠',
-  gazeAlways: false,
+  gazeAlways: true,
 }

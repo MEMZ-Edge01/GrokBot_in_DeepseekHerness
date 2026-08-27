@@ -345,7 +345,7 @@ let _appearance: AppearanceState = (() => {
     accessories: Array.isArray(saved.accessories) ? saved.accessories.filter((id) => ACCESSORIES.some((a) => a[0] === id)) : [],
     parts: Array.isArray(saved.parts) ? saved.parts.filter((id) => PARTS.some((p) => p[0] === id)) : [],
     name: typeof saved.name === 'string' && saved.name.trim() !== '' ? saved.name.trim() : DEFAULT_APPEARANCE.name,
-    gazeAlways: typeof saved.gazeAlways === 'boolean' ? saved.gazeAlways : false,
+    gazeAlways: typeof saved.gazeAlways === 'boolean' ? saved.gazeAlways : DEFAULT_APPEARANCE.gazeAlways,
   }
 })()
 
@@ -835,31 +835,34 @@ export function PetView({ store, ctx }: PetViewProps) {
       notice != null ? createElement('div', { className: css.notice }, notice) : null,
     ),
     menuOpen ? createElement('div', { className: css.panelWrap, style: { left: menu!.x, top: menu!.y } },
-      createElement(AppearancePanelInner, { onAction: (name: string) => { triggerAction(name); setMenu(null) } })) : null,
+      createElement(AppearancePanelInner)) : null,
   )
 }
 
-// ── AppearancePanel (inline for the right-click panel) ────────────────
+// ── AppearancePanel（右键换装 / 设置页共用）──────────────────────────
 
 interface AppearancePanelProps {
-  /** 手动触发快捷动作的回调（仅右键菜单传入；设置页无此行为）。 */
+  /** 'menu'：右键换装（仅颜色/形状/部件/配饰）；'settings'：设置页（另含名字/眼睛跟随/快捷动作）。 */
+  variant?: 'menu' | 'settings'
+  /** 手动触发快捷动作的回调（仅设置页传入）。 */
   onAction?: (name: string) => void
 }
 
-function AppearancePanelInner({ onAction }: AppearancePanelProps) {
+function AppearancePanelInner({ variant = 'menu', onAction }: AppearancePanelProps) {
   const a = useAppearance()
   const color = colorHex(a)
+  const settings = variant === 'settings'
   return createElement('div', { className: css.panel },
-    createElement('div', { className: css.panelTitle }, '桌宠外观'),
-    createElement('div', { className: css.panelLabel }, createElement('strong', null, '名字'), createElement('span', null, '点击宠物时显示')),
-    createElement('input', {
+    createElement('div', { className: css.panelTitle }, settings ? '桌宠外观' : '换装'),
+    settings ? createElement('div', { className: css.panelLabel }, createElement('strong', null, '名字'), createElement('span', null, '点击宠物时显示')) : null,
+    settings ? createElement('input', {
       className: css.nameInput, type: 'text', value: a.name, maxLength: 24, placeholder: DEFAULT_APPEARANCE.name,
       onChange: (ev: { target: { value: string } }) => setAppearance({ ...a, name: ev.target.value }),
       onBlur: (ev: { target: { value: string } }) => {
         const t = ev.target.value.trim()
         if (t === '') setAppearance({ ...a, name: DEFAULT_APPEARANCE.name })
       },
-    }),
+    }) : null,
     createElement('div', { className: css.panelLabel }, createElement('strong', null, '颜色'), createElement('span', null, COLORS.find((c) => c[2] === color)?.[1] ?? '')),
     createElement('div', { className: css.panelRow },
       ...COLORS.map((c) => createElement('button', {
@@ -893,17 +896,17 @@ function AppearancePanelInner({ onAction }: AppearancePanelProps) {
         key: ac[0], type: 'button', title: ac[1], 'aria-pressed': String(a.accessories.includes(ac[0])),
         onClick: () => setAppearance({ ...a, accessories: toggleId(a.accessories, ac[0]) }),
       }, createElement('b', null, ac[2]), createElement('span', null, ac[1])))),
-    createElement('div', { className: css.panelLabel }, createElement('strong', null, '眼睛跟随'),
-      createElement('span', null, a.gazeAlways ? '始终注视鼠标' : '仅悬停时注视')),
-    createElement('div', { className: css.toggleBtn },
+    settings ? createElement('div', { className: css.panelLabel }, createElement('strong', null, '眼睛跟随'),
+      createElement('span', null, a.gazeAlways ? '始终注视鼠标' : '仅悬停时注视')) : null,
+    settings ? createElement('div', { className: css.toggleBtn },
       createElement('button', {
         key: 'gaze', type: 'button', title: '鼠标不在宠物身上时，眼睛也跟随鼠标', 'aria-pressed': String(a.gazeAlways),
         onClick: () => setAppearance({ ...a, gazeAlways: !a.gazeAlways }),
-      }, createElement('b', null, a.gazeAlways ? '✓' : '—'), createElement('span', null, '始终注视'))),
-    onAction != null
+      }, createElement('b', null, a.gazeAlways ? '✓' : '—'), createElement('span', null, '始终注视'))) : null,
+    settings && onAction != null
       ? createElement('div', null,
         createElement('div', { className: css.panelLabel }, createElement('strong', null, '快捷动作'),
-          createElement('span', null, '点击立即触发')),
+          createElement('span', null, '在上方预览中立即触发')),
         createElement('div', { className: css.actionRow },
           ...QUICK_ACTIONS.map(([name, label]) => createElement('button', {
             key: name, type: 'button', className: css.actionBtn, title: `触发「${label}」`,
@@ -922,13 +925,23 @@ function documentHidden(): boolean {
 
 /** Settings page panel for the pet appearance. */
 export function PetSettingsPage() {
+  const [previewState, setPreviewState] = useState('idle')
+  const previewTimerRef = useRef(0)
+  const triggerPreview = (name: string) => {
+    setPreviewState(name)
+    if (previewTimerRef.current !== 0) window.clearTimeout(previewTimerRef.current)
+    previewTimerRef.current = window.setTimeout(() => { setPreviewState('idle') }, 1800)
+  }
+  useEffect(() => () => {
+    if (previewTimerRef.current !== 0) window.clearTimeout(previewTimerRef.current)
+  }, [])
   return createElement('div', { className: css.settings },
     createElement('h3', null, '桌宠外观设置'),
     createElement('div', { className: css.settingsPreview },
       createElement('div', { className: css.settingsFigure },
-        createElement(GrokbotFigure, { petState: 'idle', data: EXPR_DATA, simHolder: { current: null } }))),
+        createElement(GrokbotFigure, { petState: previewState, data: EXPR_DATA, simHolder: { current: null } }))),
     createElement('div', { style: { height: 10 } }),
-    createElement(AppearancePanelInner, {}),
+    createElement(AppearancePanelInner, { variant: 'settings', onAction: triggerPreview }),
     createElement('div', { className: css.settingsFoot },
       '外观即时同步到右下角桌宠，并自动保存。造型与表情数据严格移植自 LaoA-GrokBot（MIT License），配饰与部件支持多选叠穿 — 也可以在桌宠上右键直接换装。'),
   )
