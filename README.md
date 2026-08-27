@@ -33,7 +33,12 @@
    corepack pnpm exec tsc -b packages/client/ui-pet/tsconfig.json
    corepack pnpm --filter @deepseek-ai/dsh-client-ui-pet run bundle
    corepack pnpm run build:web
-5. 报告：重启 dsh web 并刷新浏览器（Ctrl+Shift+R）后，桌宠出现在对话输入框右上方。
+5. 用提问工具向用户提问并等待回答：
+   问题：安装完成，是否现在重启 DeepSeek Harness？
+   选项 1（推荐）：是的，现在重启
+   选项 2：不，稍后重启
+   若选择「是的，现在重启」：重启 dsh web 服务，重启后提醒用户刷新浏览器（Ctrl+Shift+R），桌宠会出现在对话输入框右上方；
+   若选择「不，稍后重启」：提醒用户稍后自行重启 dsh web 并刷新浏览器即可。
 ```
 
 ### 方式二：手动安装
