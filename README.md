@@ -28,12 +28,17 @@
          name: '@deepseek-ai/dsh-client-ui-trajectory'
        - id: ui-pet
          name: '@deepseek-ai/dsh-client-ui-pet'
-4. pwsh — 在 harness 源码根依次执行，每步必须成功：
+4. edit — 修改 packages\bundle\web-app\package.json（若已含 "dsh-client-ui-pet" 则跳过），把：
+       "@deepseek-ai/dsh-client-ui-permission-presets": "workspace:^",
+   替换为：
+       "@deepseek-ai/dsh-client-ui-permission-presets": "workspace:^",
+       "@deepseek-ai/dsh-client-ui-pet": "workspace:^",
+5. pwsh — 在 harness 源码根依次执行，每步必须成功：
    corepack pnpm install
    corepack pnpm exec tsc -b packages/client/ui-pet/tsconfig.json
    corepack pnpm --filter @deepseek-ai/dsh-client-ui-pet run bundle
    corepack pnpm run build:web
-5. 用提问工具向用户提问并等待回答：
+6. 用提问工具向用户提问并等待回答：
    问题：安装完成，是否现在重启 DeepSeek Harness？
    选项 1（推荐）：是的，现在重启
    选项 2：不，稍后重启
@@ -54,7 +59,7 @@ powershell -ExecutionPolicy Bypass -File .\resident\install-resident.ps1 \
 # 3. 重启 dsh web → 桌宠自动出现在对话输入框右上方
 ```
 
-不用脚本的手抄版（等价三步）：
+不用脚本的手抄版（等价四步）：
 
 1. 把 `resident/` 复制为 `<harness根>/packages/client/ui-pet/`；
 2. 在 `<harness根>/packages/bundle/web-app/cordis.patch.yml` 的 `insert` 块中、`- id: ui-trajectory` 后添加：
@@ -64,7 +69,13 @@ powershell -ExecutionPolicy Bypass -File .\resident\install-resident.ps1 \
          name: '@deepseek-ai/dsh-client-ui-pet'
    ```
 
-3. 在 harness 源码根目录依次运行：
+3. 在 `<harness根>/packages/bundle/web-app/package.json` 的 `dependencies` 中添加（loader 从 profile 解析必需）：
+
+   ```json
+   "@deepseek-ai/dsh-client-ui-pet": "workspace:^",
+   ```
+
+4. 在 harness 源码根目录依次运行：
 
    ```bash
    corepack pnpm install

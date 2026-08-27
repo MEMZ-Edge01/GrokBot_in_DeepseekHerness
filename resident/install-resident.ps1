@@ -77,7 +77,26 @@ if ($patchContent -match 'id: ui-pet') {
   Write-Host "✓ 已在 cordis.patch.yml 注册 ui-pet" -ForegroundColor Green
 }
 
-# ── 3. 安装依赖 + 构建 ──────────────────────────────────────────────────
+# ── 3. 注册依赖（web-app package.json，loader 从 profile 解析必需） ────────
+$webAppPkg = Join-Path $HarnessRoot 'packages/bundle/web-app/package.json'
+if (-not (Test-Path $webAppPkg)) {
+  Write-Error "未找到 packages/bundle/web-app/package.json，无法注册依赖"
+}
+$webAppContent = Get-Content $webAppPkg -Raw
+if ($webAppContent -match 'dsh-client-ui-pet') {
+  Write-Host "✓ 依赖行已存在（web-app/package.json 含 ui-pet）" -ForegroundColor Green
+} else {
+  $depAnchor = '    "@deepseek-ai/dsh-client-ui-permission-presets": "workspace:^",'
+  if ($webAppContent -notmatch [regex]::Escape($depAnchor)) {
+    Write-Error "未找到依赖插入锚点（permission-presets 行），请手动在 web-app/package.json 的 dependencies 中添加 @deepseek-ai/dsh-client-ui-pet"
+  }
+  $depInsert = $depAnchor + "`n" + '    "@deepseek-ai/dsh-client-ui-pet": "workspace:^",'
+  $webAppContent = $webAppContent -replace [regex]::Escape($depAnchor), $depInsert
+  [System.IO.File]::WriteAllText($webAppPkg, $webAppContent, (New-Object System.Text.UTF8Encoding($false)))
+  Write-Host "✓ 已在 web-app/package.json 注册依赖（loader 解析必需）" -ForegroundColor Green
+}
+
+# ── 4. 安装依赖 + 构建 ──────────────────────────────────────────────────
 Write-Host "`n─ 安装依赖 ─" -ForegroundColor Cyan
 Push-Location $HarnessRoot
 & corepack pnpm install 2>&1 | Select-Object -Last 5
