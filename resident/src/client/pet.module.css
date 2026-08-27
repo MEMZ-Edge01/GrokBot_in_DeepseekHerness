@@ -315,6 +315,30 @@
   white-space: nowrap;
 }
 
+/* 快捷动作按钮（右键菜单） */
+.actionRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+}
+
+.actionBtn {
+  min-height: 30px;
+  padding: 5px 2px;
+  border: 1px solid var(--dsw-alias-border-inverted, rgba(0,0,0,.1));
+  border-radius: 9px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary, #3a4150);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.actionBtn:hover {
+  border-color: var(--dsw-alias-state-info-primary, #2f86ed);
+  color: var(--dsw-alias-label-primary, #20242e);
+  background: var(--dsw-alias-interactive-bg-hover, rgba(0,0,0,.05));
+}
+
 .resetBtn {
   margin-top: 10px;
   width: 100%;

@@ -59,6 +59,8 @@ export interface AppearanceState {
   parts: string[]
   /** 宠物名字：点击宠物时气泡标题与提示文字。 */
   name: string
+  /** 始终注视鼠标：即使鼠标不悬停在宠物身上，眼睛也跟随鼠标。 */
+  gazeAlways: boolean
 }
 
 export const DEFAULT_APPEARANCE: AppearanceState = {
@@ -67,4 +69,5 @@ export const DEFAULT_APPEARANCE: AppearanceState = {
   accessories: [],
   parts: [],
   name: 'DSH 桌宠',
+  gazeAlways: false,
 }

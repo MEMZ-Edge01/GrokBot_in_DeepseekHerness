@@ -168,6 +168,16 @@ function toggleId(list: string[], id: string): string[] {
   return list.indexOf(id) >= 0 ? list.filter((x) => x !== id) : [...list, id]
 }
 
+/** 6 种快捷动作（原版「果冻感快捷动作」）：[状态名, 显示名]。 */
+const QUICK_ACTIONS: ReadonlyArray<readonly [string, string]> = [
+  ['happy', '开心'],
+  ['surprised', '惊讶'],
+  ['listening', '倾听'],
+  ['thinking', '思考'],
+  ['working', '工作'],
+  ['idle', '待机'],
+] as const
+
 // ── GrokbotFigure ────────────────────────────────────────────────────
 
 interface FigureProps {
@@ -335,6 +345,7 @@ let _appearance: AppearanceState = (() => {
     accessories: Array.isArray(saved.accessories) ? saved.accessories.filter((id) => ACCESSORIES.some((a) => a[0] === id)) : [],
     parts: Array.isArray(saved.parts) ? saved.parts.filter((id) => PARTS.some((p) => p[0] === id)) : [],
     name: typeof saved.name === 'string' && saved.name.trim() !== '' ? saved.name.trim() : DEFAULT_APPEARANCE.name,
+    gazeAlways: typeof saved.gazeAlways === 'boolean' ? saved.gazeAlways : false,
   }
 })()
 
@@ -391,9 +402,7 @@ export function PetView({ store, ctx }: PetViewProps) {
   })
   const [bubbleOpen, setBubbleOpen] = useState(false)
   const [hearts, setHearts] = useState<{ id: number; dx: number; delay: number }[]>([])
-  const [happyUntil, setHappyUntil] = useState(0)
-  const [surprisedUntil, setSurprisedUntil] = useState(0)
-  const [listeningUntil, setListeningUntil] = useState(0)
+  const [action, setAction] = useState<{ name: string; until: number }>({ name: '', until: 0 })
   const [hovering, setHovering] = useState(false)
   const [flying, setFlying] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
@@ -434,17 +443,41 @@ export function PetView({ store, ctx }: PetViewProps) {
     if (running && !was) {
       if (soundOnRef.current && !documentHidden()) playSound('start')
       sendNotification(`${appearance.name} · 请求已开始`, `已累计 ${snap.turnCount} 轮请求`, 'dsh-pet-start')
-      setHappyUntil(0)
+      setAction({ name: '', until: 0 })
     } else if (!running && was) {
       if (soundOnRef.current && !documentHidden()) playSound('end')
       const secs = Math.max(0, Math.round(snap.elapsedMs / 1000))
       sendNotification(`${appearance.name} · 请求完成`, `用时约 ${secs} 秒 · 共 ${snap.turnCount} 轮请求`, 'dsh-pet-end')
-      setHappyUntil(Date.now() + 2600)
+      setAction({ name: 'happy', until: Date.now() + 2600 })
       // 每轮结束后自动弹出气泡展示本轮用量，6 秒后自动收起
       setBubbleOpen(true)
       ctx.timeout(() => setBubbleOpen(false), 6000)
     }
   }, [running])
+
+  // 始终注视：不悬停也跟随鼠标（设置开关控制）
+  useEffect(() => {
+    const w = typeof window !== 'undefined' ? window : null as any
+    if (w == null || !appearance.gazeAlways) {
+      const s = simHolder.current
+      if (s != null) { s.gazeX = 0; s.gazeY = 0 }
+      return
+    }
+    const onMove = (ev: globalThis.PointerEvent) => {
+      const s = simHolder.current
+      if (s == null) return
+      const cx = posRef.current.x + 42
+      const cy = posRef.current.y + 42
+      s.gazeX = clamp((ev.clientX - cx) / 220, -1, 1) * 20
+      s.gazeY = clamp((ev.clientY - cy) / 220, -1, 1) * 14
+    }
+    w.addEventListener('pointermove', onMove, { passive: true })
+    return () => {
+      w.removeEventListener('pointermove', onMove)
+      const s = simHolder.current
+      if (s != null) { s.gazeX = 0; s.gazeY = 0 }
+    }
+  }, [appearance.gazeAlways])
 
   // Persist position
   useEffect(() => { lsSet('pos', pos) }, [pos])
@@ -476,6 +509,16 @@ export function PetView({ store, ctx }: PetViewProps) {
     setHearts((prev) => [...prev, ...items])
     ctx.timeout(() => setHearts((prev) => prev.filter((h) => Math.floor(h.id / 10) !== batch)), 1200)
   }, [ctx])
+
+  // 手动触发一种快捷动作（点击随机 / 右键菜单选择共用）
+  const triggerAction = useCallback((name: string) => {
+    if (name === 'happy') spawnHearts()
+    if (name === 'surprised') {
+      const s = simHolder.current
+      if (s != null) s.blinkStart = performance.now()
+    }
+    setAction({ name, until: Date.now() + 1800 })
+  }, [spawnHearts])
 
   const flashNotice = useCallback((text: string) => {
     setNotice(text)
@@ -603,12 +646,9 @@ export function PetView({ store, ctx }: PetViewProps) {
     if (drag == null) return
     if (!drag.moved) {
       if (soundOnRef.current) playSound('pet')
-      // 点击：随机启用一种快捷动作（原版「果冻感快捷动作」）
-      const actions = ['happy', 'surprised', 'listening'] as const
-      const picked = actions[Math.floor(Math.random() * actions.length)]!
-      if (picked === 'happy') { setHappyUntil(Date.now() + 1600); spawnHearts() }
-      else if (picked === 'surprised') setSurprisedUntil(Date.now() + 1000)
-      else setListeningUntil(Date.now() + 1400)
+      // 点击：从 6 种快捷动作中随机触发一种
+      const picked = QUICK_ACTIONS[Math.floor(Math.random() * QUICK_ACTIONS.length)]![0]
+      triggerAction(picked)
       setBubbleOpen((o) => !o)
       return
     }
@@ -629,10 +669,11 @@ export function PetView({ store, ctx }: PetViewProps) {
     if (speed > 3800) { const s = 3800 / speed; vx *= s; vy *= s }
     startFlight(vx, vy)
     if (soundOnRef.current && !documentHidden()) playSound('throw')
-    setSurprisedUntil(Date.now() + 900)
+    setAction({ name: 'surprised', until: Date.now() + 900 })
   }
 
   const onBoxMove = (ev: globalThis.PointerEvent) => {
+    if (appearance.gazeAlways) return
     const s = simHolder.current
     if (s == null) return
     const rect = (ev.currentTarget as HTMLElement).getBoundingClientRect()
@@ -642,6 +683,7 @@ export function PetView({ store, ctx }: PetViewProps) {
 
   const onBoxLeave = () => {
     setHovering(false)
+    if (appearance.gazeAlways) return
     const s = simHolder.current
     if (s != null) { s.gazeX = 0; s.gazeY = 0 }
   }
@@ -680,12 +722,10 @@ export function PetView({ store, ctx }: PetViewProps) {
     return createElement('button', { type: 'button', className: css.reshow, title: '显示 DSH 桌宠', onClick: showPet }, '🐾')
   }
 
-  const isHappy = Date.now() < happyUntil
   const nowRender = Date.now()
+  const actionActive = action.name !== '' && action.until > nowRender
   const petState = flying ? 'surprised'
-    : surprisedUntil > nowRender ? 'surprised'
-    : listeningUntil > nowRender ? 'listening'
-    : isHappy ? 'happy'
+    : actionActive ? action.name
     : running ? (snap.currentTool != null ? 'working' : 'thinking')
     : hovering ? 'listening' : 'idle'
 
@@ -745,13 +785,18 @@ export function PetView({ store, ctx }: PetViewProps) {
       notice != null ? createElement('div', { className: css.notice }, notice) : null,
     ),
     menuOpen ? createElement('div', { className: css.panelWrap, style: { left: menu!.x, top: menu!.y } },
-      createElement(AppearancePanelInner)) : null,
+      createElement(AppearancePanelInner, { onAction: (name: string) => { triggerAction(name); setMenu(null) } })) : null,
   )
 }
 
 // ── AppearancePanel (inline for the right-click panel) ────────────────
 
-function AppearancePanelInner() {
+interface AppearancePanelProps {
+  /** 手动触发快捷动作的回调（仅右键菜单传入；设置页无此行为）。 */
+  onAction?: (name: string) => void
+}
+
+function AppearancePanelInner({ onAction }: AppearancePanelProps) {
   const a = useAppearance()
   const color = colorHex(a)
   return createElement('div', { className: css.panel },
@@ -798,6 +843,24 @@ function AppearancePanelInner() {
         key: ac[0], type: 'button', title: ac[1], 'aria-pressed': String(a.accessories.includes(ac[0])),
         onClick: () => setAppearance({ ...a, accessories: toggleId(a.accessories, ac[0]) }),
       }, createElement('b', null, ac[2]), createElement('span', null, ac[1])))),
+    createElement('div', { className: css.panelLabel }, createElement('strong', null, '眼睛跟随'),
+      createElement('span', null, a.gazeAlways ? '始终注视鼠标' : '仅悬停时注视')),
+    createElement('div', { className: css.toggleBtn },
+      createElement('button', {
+        key: 'gaze', type: 'button', title: '鼠标不在宠物身上时，眼睛也跟随鼠标', 'aria-pressed': String(a.gazeAlways),
+        onClick: () => setAppearance({ ...a, gazeAlways: !a.gazeAlways }),
+      }, createElement('b', null, a.gazeAlways ? '✓' : '—'), createElement('span', null, '始终注视'))),
+    onAction != null
+      ? createElement('div', null,
+        createElement('div', { className: css.panelLabel }, createElement('strong', null, '快捷动作'),
+          createElement('span', null, '点击立即触发')),
+        createElement('div', { className: css.actionRow },
+          ...QUICK_ACTIONS.map(([name, label]) => createElement('button', {
+            key: name, type: 'button', className: css.actionBtn, title: `触发「${label}」`,
+            onClick: () => { onAction(name) },
+          }, label))),
+      )
+      : null,
     createElement('button', { type: 'button', className: css.resetBtn, onClick: () => setAppearance({ ...DEFAULT_APPEARANCE }) }, '恢复默认'),
   )
 }
@@ -815,7 +878,7 @@ export function PetSettingsPage() {
       createElement('div', { className: css.settingsFigure },
         createElement(GrokbotFigure, { petState: 'idle', data: EXPR_DATA, simHolder: { current: null } }))),
     createElement('div', { style: { height: 10 } }),
-    createElement(AppearancePanelInner),
+    createElement(AppearancePanelInner, {}),
     createElement('div', { className: css.settingsFoot },
       '外观即时同步到右下角桌宠，并自动保存。造型与表情数据严格移植自 LaoA-GrokBot（MIT License），配饰与部件支持多选叠穿 — 也可以在桌宠上右键直接换装。'),
   )
