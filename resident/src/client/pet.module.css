@@ -165,6 +165,11 @@
   width: 244px;
 }
 
+/* 定位测量期间隐藏，避免在最终位置确定前闪现 */
+.panelMeasuring {
+  visibility: hidden;
+}
+
 .panel {
   padding: 10px;
   border: 1px solid var(--dsw-alias-border-inverted, rgba(0,0,0,.08));

@@ -7,7 +7,7 @@
  *
  * @module @deepseek-ai/dsh-client-ui-pet/client/pet
  */
-import { createElement, useEffect, useRef, useState, useCallback, useSyncExternalStore } from 'react'
+import { createElement, useEffect, useLayoutEffect, useRef, useState, useCallback, useSyncExternalStore } from 'react'
 import type { PetStateStore, PetUsage } from './store.ts'
 import css from './pet.module.css'
 import {
@@ -427,7 +427,8 @@ export function PetView({ store, ctx }: PetViewProps) {
   const [hovering, setHovering] = useState(false)
   const [flying, setFlying] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
-  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null)
+  const [menu, setMenu] = useState<{ x: number; y: number; ready: boolean } | null>(null)
+  const menuRef = useRef<HTMLDivElement | null>(null)
   const [motionCls, setMotionCls] = useState('')
   const soundOnRef = useRef(soundOn)
   const notifyOnRef = useRef(notifyOn)
@@ -551,6 +552,30 @@ export function PetView({ store, ctx }: PetViewProps) {
       w.removeEventListener('keydown', onKey)
     }
   }, [menuOpen])
+
+  // 右键菜单定位：先渲染（隐藏）实测尺寸，再避开宠物与屏幕边框放置。
+  // 优先级：宠物右侧 → 左侧 → 下方 → 上方 → 兜底钳制到视口内。
+  useLayoutEffect(() => {
+    if (menu == null || menu.ready) return
+    const el = menuRef.current
+    const w = typeof window !== 'undefined' ? window : null as any
+    if (el == null || w == null) return
+    const rect = el.getBoundingClientRect()
+    const mw = rect.width, mh = rect.height
+    const vw = w.innerWidth, vh = w.innerHeight
+    const GAP = 8
+    const clampX = (v: number) => clamp(v, GAP, Math.max(GAP, vw - GAP - mw))
+    const clampY = (v: number) => clamp(v, GAP, Math.max(GAP, vh - GAP - mh))
+    const petL = posRef.current.x, petT = posRef.current.y
+    const petR = petL + 84, petB = petT + 84
+    let x = clampX(petL)
+    let y = clampY(petT)
+    if (petR + GAP + mw <= vw - GAP) { x = petR + GAP; y = clampY(petT) }
+    else if (petL - GAP - mw >= GAP) { x = petL - GAP - mw; y = clampY(petT) }
+    else if (petB + GAP + mh <= vh - GAP) { x = clampX(petL); y = petB + GAP }
+    else if (petT - GAP - mh >= GAP) { x = clampX(petL); y = petT - GAP - mh }
+    setMenu({ x, y, ready: true })
+  }, [menu])
 
   const spawnHearts = useCallback(() => {
     heartSeqRef.current += 1
@@ -740,9 +765,8 @@ export function PetView({ store, ctx }: PetViewProps) {
     ev.preventDefault()
     if (typeof ev.button === 'number' && ev.button !== 2) return
     getAudio(); stopFlight()
-    const w = typeof window !== 'undefined' ? window as any : null
-    const vw = w == null ? 1200 : w.innerWidth, vh = w == null ? 800 : w.innerHeight
-    setMenu({ x: clamp(ev.clientX - 122, 8, Math.max(8, vw - 260)), y: clamp(ev.clientY - 430, 8, Math.max(8, vh - 470)) })
+    // 先放在光标处（隐藏）占位，尺寸测好后由 useLayoutEffect 重定位
+    setMenu({ x: ev.clientX, y: ev.clientY, ready: false })
   }
 
   // Settings
@@ -827,7 +851,11 @@ export function PetView({ store, ctx }: PetViewProps) {
       }, createElement(GrokbotFigure, { petState, data: EXPR_DATA, simHolder })),
       notice != null ? createElement('div', { className: css.notice }, notice) : null,
     ),
-    menuOpen ? createElement('div', { className: css.panelWrap + ' dsh-pet-panel', style: { left: menu!.x, top: menu!.y } },
+    menuOpen ? createElement('div', {
+      ref: menuRef,
+      className: css.panelWrap + ' dsh-pet-panel' + (menu!.ready ? '' : ' ' + css.panelMeasuring),
+      style: { left: menu!.x, top: menu!.y },
+    },
       createElement(AppearancePanelInner, {
         variant: 'menu',
         soundOn, notifyOn,
