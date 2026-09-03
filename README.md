@@ -17,7 +17,7 @@
 请安装 GrokBot 桌宠常驻插件。用 pwsh 工具执行命令，用 edit 工具修改文件。若任一步失败，停止并输出：安装失败，【失败原因】。
 
 1. pwsh — 下载并解压：
-   Invoke-WebRequest -Uri 'https://github.com/MEMZ-Edge01/GrokBot_in_DeepseekHerness/releases/download/v2.0.0/dsh-grokbot-pet-resident-v2.0.0.zip' -OutFile "$env:TEMP\pet-resident.zip"; Expand-Archive "$env:TEMP\pet-resident.zip" "$env:TEMP\pet-resident" -Force
+   Invoke-WebRequest -Uri 'https://github.com/Edge-HH/GrokBot_in_DeepseekHerness/releases/download/v2.0.0/dsh-grokbot-pet-resident-v2.0.0.zip' -OutFile "$env:TEMP\pet-resident.zip"; Expand-Archive "$env:TEMP\pet-resident.zip" "$env:TEMP\pet-resident" -Force
 2. pwsh — 复制包（<harness源码根> = 含 packages\bundle\web-app\cordis.patch.yml 的目录）：
    Remove-Item "<harness源码根>\packages\client\ui-pet" -Recurse -Force -ErrorAction SilentlyContinue; Copy-Item "$env:TEMP\pet-resident\resident" "<harness源码根>\packages\client\ui-pet" -Recurse -Force
 3. edit — 修改 cordis.patch.yml（若已含 "id: ui-pet" 则跳过），把：
@@ -50,7 +50,7 @@
 
 ```bash
 # 1. 克隆本仓库
-git clone https://github.com/MEMZ-Edge01/GrokBot_in_DeepseekHerness.git
+git clone https://github.com/Edge-HH/GrokBot_in_DeepseekHerness.git
 
 # 2. 一键脚本（自动复制包 + 注册组合 + 构建）
 powershell -ExecutionPolicy Bypass -File .\resident\install-resident.ps1 \
